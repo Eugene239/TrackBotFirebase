@@ -33,6 +33,8 @@ public class TrackinBot extends TelegramLongPollingBot {
     private static final Logger Log = Logger.getLogger(TrackinBot.class);
     private static final String tocken = Security.tocken;
     private static final String TTAG = "[THREAD]: ";
+    private static final String THREAD_PATH="THREAD";
+
     public TrackinBot() {
         Log.warn(TAG + "Start");
         //прослушиваем сообщения
@@ -45,6 +47,7 @@ public class TrackinBot extends TelegramLongPollingBot {
         ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
         exec.scheduleAtFixedRate(() -> {
             //Log.info(wait);
+            Firebase.getInstance().getDatabase().getReference(THREAD_PATH).setValue(Firebase.getSdf().format(System.currentTimeMillis()));
             Log.info(TTAG+"start "+Firebase.getSdf().format(System.currentTimeMillis()));
             Firebase.getInstance().getDatabase().getReference(Track.PATH).addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
