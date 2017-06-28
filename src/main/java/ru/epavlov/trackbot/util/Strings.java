@@ -15,4 +15,5 @@ public class Strings {
     public static final String HELP ="Если ваш не трек воспринимается ботом или возникли ошибки, пишите @EuPavlov";
     public static final String NO_TRACK = "Трек: "+MASK+" не найден";
     public static final String ERROR_MESSAGE = "Неверное сообщение";
+
 }

@@ -35,6 +35,14 @@
             <artifactId>firebase-admin</artifactId>
             <version>5.2.0</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/io.reactivex.rxjava2/rxjava -->
+        <dependency>
+            <groupId>io.reactivex.rxjava2</groupId>
+            <artifactId>rxjava</artifactId>
+            <version>2.0.0-RC1</version>
+        </dependency>
+
+
     </dependencies>
 
     <build>
@@ -44,7 +52,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>ru.epavlov.trackBot.main.Main</mainClass>
+                            <mainClass>ru.epavlov.trackbot.main.Main</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

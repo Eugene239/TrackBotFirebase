@@ -3,6 +3,7 @@ package ru.epavlov.trackbot.logic;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.FirebaseDatabase;
 import org.apache.log4j.Logger;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import ru.epavlov.trackbot.dao.TrackDAO;
@@ -10,6 +11,7 @@ import ru.epavlov.trackbot.dao.UserDAO;
 import ru.epavlov.trackbot.entity.MessageBot;
 import ru.epavlov.trackbot.firebase.Firebase;
 import ru.epavlov.trackbot.main.Output;
+import ru.epavlov.trackbot.model.ModelTrack;
 import ru.epavlov.trackbot.util.Strings;
 
 /**
@@ -23,8 +25,7 @@ public class MessageListener {
 
     public MessageListener(TelegramLongPollingBot bot) {
         this.bot =bot;
-        Firebase.getInstance()
-                .getDatabase()
+        Firebase.getInstance().getDatabase()
                 .getReference(MessageBot.RAW)
                 .addChildEventListener(new ChildEventListener() {
             @Override
@@ -60,29 +61,40 @@ public class MessageListener {
         Log.info(TAG+messageBot.getId()+": "+ messageBot.getText());
         if (!messageBot.isChecked()) { //если эта комнда не была проверена
             if (isDefaultCommand(messageBot, key))  return;//если станадртная команда
-
-            TrackDAO.getInstance().getTrack(key,messageBot); //поверяем трек
+            //неверное сообщение
+            if (TrackDAO.getInstance().isTrack(messageBot.getText())==TrackDAO.ERROR_CODE){//не трек
+                Output.get().sendOnlyText(messageBot.getId(),Strings.ERROR_MESSAGE);
+                replaceToError(key,messageBot);
+                return;
+            }
+            ModelTrack.get().getTrack(messageBot.getText()).take(1).subscribe(track -> {
+               if (track==null) Output.get().sendOnlyText(messageBot.getId(),Strings.NO_TRACK.replace(Strings.MASK,messageBot.getText()));
+               else Output.get().sendTrack(messageBot.getId(),track,"");
+               replaceToCorrect(key,messageBot);
+            });
+            //старый способ TrackDAO.getInstance().getTrack(key,messageBot); //поверяем трек старое
         }else { //отправляем сообщения в ошибочные
             replaceToError(key,messageBot);
         }
     }
 
     public static void remove(String key){ //удаление из базы команнды
-        Firebase.getInstance().getDatabase().getReference(MessageBot.RAW).child(key).removeValue();
+        FirebaseDatabase.getInstance().getReference(MessageBot.RAW).child(key).removeValue();
     }
     //перемещение в обработанные сообщения
     public static void replaceToCorrect(String key, MessageBot messageBot){
         remove(key);
         messageBot.setChecked(true);
-        Firebase.getInstance().getDatabase().getReference(MessageBot.CORRECT+"/"+messageBot.getText()).setValue(messageBot);
+        FirebaseDatabase.getInstance().getReference(MessageBot.CORRECT+"/"+messageBot.getText()).setValue(messageBot);
     }
 
     //переменщение в ошибочные
     public static void replaceToError(String key,MessageBot messageBot){
         remove(key);
         messageBot.setChecked(true);
-        Firebase.getInstance().getDatabase().getReference(MessageBot.ERROR+"/"+messageBot.getText()).setValue(messageBot);
+        FirebaseDatabase.getInstance().getReference(MessageBot.ERROR+"/"+messageBot.getText()).setValue(messageBot);
     }
+
     private boolean isDefaultCommand(MessageBot messageBot, String key){
         switch (messageBot.getText().toLowerCase().trim()){
             case "/mylist": UserDAO.getInstance().getMyList(messageBot.getId());  remove(key); return true;

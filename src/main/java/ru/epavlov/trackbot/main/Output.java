@@ -14,9 +14,11 @@ import ru.epavlov.trackbot.entity.UserBot;
 import ru.epavlov.trackbot.entity.UserTrack;
 import ru.epavlov.trackbot.firebase.Firebase;
 import ru.epavlov.trackbot.logic.parser.MainParser;
+import ru.epavlov.trackbot.util.Security;
 import ru.epavlov.trackbot.util.Strings;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -75,7 +77,11 @@ public class Output {
         send(new SendMessage().setText(MainParser.get().getText(track,desc)).setChatId(userId).setReplyMarkup(getTrackMessageKeyboard(track.getId())));
 
     }
-
+    public void notifyAdmins(String text){
+        Arrays.stream(Security.admins).forEach(admin->{
+            sendOnlyText(admin,text);
+        });
+    }
     public void setBot(TelegramLongPollingBot bot){
         this.bot = bot;
     }
