@@ -60,7 +60,7 @@ public class ParserCainiao implements Parser {
     @Override
     public String getText(Track track, String desc) {
         String out=track.getId()+"\n";
-        out+=desc==null||desc.equals("")?"":desc+"\n\n";
+        out+=desc==null||desc.equals("")?"":"\n"+desc+"\n\n";
         out+=(track.getStatus()==null ||  track.getStatus().equals(""))?"":"Статус: "+track.getStatus()+"\n";
         out+= track.getText()+"\n";
         out+= track.getTime()+"\n\n";

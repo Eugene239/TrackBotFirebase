@@ -15,5 +15,8 @@ public class Strings {
     public static final String HELP ="Если ваш не трек воспринимается ботом или возникли ошибки, пишите @EuPavlov";
     public static final String NO_TRACK = "Трек: "+MASK+" не найден";
     public static final String ERROR_MESSAGE = "Неверное сообщение";
+    public static final String TRACK_HAS_BEEN_DELETED = "Трек "+MASK+" удален";
+    public static final String DESC_ADDED = "Описание добавлено";
+    public static final String ENTER_DESC = "Ведите описание";
 
 }

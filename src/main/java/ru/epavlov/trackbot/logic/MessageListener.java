@@ -1,18 +1,16 @@
 package ru.epavlov.trackbot.logic;
 
-import com.google.firebase.database.ChildEventListener;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.FirebaseDatabase;
 import org.apache.log4j.Logger;
+import org.telegram.telegrambots.api.objects.Message;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
-import ru.epavlov.trackbot.dao.TrackDAO;
-import ru.epavlov.trackbot.dao.UserDAO;
-import ru.epavlov.trackbot.entity.MessageBot;
-import ru.epavlov.trackbot.firebase.Firebase;
+import ru.epavlov.trackbot.entity.UserBot;
+import ru.epavlov.trackbot.entity.UserTrack;
 import ru.epavlov.trackbot.main.Output;
+import ru.epavlov.trackbot.model.MessageModel;
 import ru.epavlov.trackbot.model.ModelTrack;
+import ru.epavlov.trackbot.model.ModelUser;
 import ru.epavlov.trackbot.util.Strings;
+
 
 /**
  * Created by Eugene on 20.06.2017.
@@ -24,87 +22,47 @@ public class MessageListener {
     private TelegramLongPollingBot bot;
 
     public MessageListener(TelegramLongPollingBot bot) {
-        this.bot =bot;
-        Firebase.getInstance().getDatabase()
-                .getReference(MessageBot.RAW)
-                .addChildEventListener(new ChildEventListener() {
-            @Override
-            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+        this.bot = bot;
+    }
 
-                //System.out.println(s+" "+dataSnapshot.getValue(MessageBot.class).getText());
-                parseMessage( dataSnapshot.getKey(), dataSnapshot.getValue(MessageBot.class));
-            }
-
-            @Override
-            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-
-            }
-
-            @Override
-            public void onChildRemoved(DataSnapshot dataSnapshot) {
-
-            }
-
-            @Override
-            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
-
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-
+    public void parseMessage(UserBot user, Message message) {
+        Log.info(TAG+ user.getFIO()+": "+message.getText());
+        if (isDefaultCommand(user, message.getText())) return; //стандартная комада
+        if (MessageModel.get().isCommand(user,message.getText())) return; //комнда для трека
+        ModelTrack.get().getTrack(message.getText()).subscribe(track -> {
+            switch (track.getId()) {
+                case ModelTrack.ERROR_TEXT:
+                    Output.get().sendOnlyText(user.getId(), Strings.ERROR_MESSAGE);
+                    MessageModel.get().addError(message);
+                    return;
+                case ModelTrack.TRACK_NOT_FOUND:
+                    Output.get().sendErrorTrack(user.getId(),message.getText());
+                    MessageModel.get().addError(message);
+                    return;
+                default:
+                    track.getUsers().computeIfAbsent(user.getId() + "", s -> user.getId());
+                    user.getTrackList().computeIfAbsent(track.getId(), s -> new UserTrack(track));
+                    ModelTrack.get().update(track);
+                    ModelUser.get().update(user);
+                    Output.get().sendTrack(user.getId(), track, user.getTrackList().get(track.getId()).getName()); //отправляем ему трек
             }
         });
     }
 
-    private void parseMessage(String key,MessageBot messageBot){
-        Log.info(TAG+messageBot.getId()+": "+ messageBot.getText());
-        if (!messageBot.isChecked()) { //если эта комнда не была проверена
-            if (isDefaultCommand(messageBot, key))  return;//если станадртная команда
-            //неверное сообщение
-            if (TrackDAO.getInstance().isTrack(messageBot.getText())==TrackDAO.ERROR_CODE){//не трек
-                Output.get().sendOnlyText(messageBot.getId(),Strings.ERROR_MESSAGE);
-                replaceToError(key,messageBot);
-                return;
-            }
-            ModelTrack.get().getTrack(messageBot.getText()).take(1).subscribe(track -> {
-               if (track==null) Output.get().sendOnlyText(messageBot.getId(),Strings.NO_TRACK.replace(Strings.MASK,messageBot.getText()));
-               else Output.get().sendTrack(messageBot.getId(),track,"");
-               replaceToCorrect(key,messageBot);
-            });
-            //старый способ TrackDAO.getInstance().getTrack(key,messageBot); //поверяем трек старое
-        }else { //отправляем сообщения в ошибочные
-            replaceToError(key,messageBot);
-        }
-    }
-
-    public static void remove(String key){ //удаление из базы команнды
-        FirebaseDatabase.getInstance().getReference(MessageBot.RAW).child(key).removeValue();
-    }
-    //перемещение в обработанные сообщения
-    public static void replaceToCorrect(String key, MessageBot messageBot){
-        remove(key);
-        messageBot.setChecked(true);
-        FirebaseDatabase.getInstance().getReference(MessageBot.CORRECT+"/"+messageBot.getText()).setValue(messageBot);
-    }
-
-    //переменщение в ошибочные
-    public static void replaceToError(String key,MessageBot messageBot){
-        remove(key);
-        messageBot.setChecked(true);
-        FirebaseDatabase.getInstance().getReference(MessageBot.ERROR+"/"+messageBot.getText()).setValue(messageBot);
-    }
-
-    private boolean isDefaultCommand(MessageBot messageBot, String key){
-        switch (messageBot.getText().toLowerCase().trim()){
-            case "/mylist": UserDAO.getInstance().getMyList(messageBot.getId());  remove(key); return true;
-            case "/help":  Output.get().sendOnlyText(messageBot.getId(), Strings.HELP);  remove(key); return true;
-            case "/stat":  remove(key); return true;
-            case "/start":
-                //Output.get().sendOnlyText(messageBot.getId(), Strings.GREETING); проверяется каждое сообщение
-                remove(key);
+    private boolean isDefaultCommand(UserBot user, String text) {
+        switch (text.toLowerCase().trim()) {
+            case "/mylist":
+                ModelUser.get().getMyList(user.getId());
                 return true;
-            default: return false;
+            case "/help":
+                Output.get().sendOnlyText(user.getId(), Strings.HELP);
+                return true;
+            case "/stat":
+                return true;
+            case "/start":
+                return true;
+            default:
+                return false;
         }
     }
 

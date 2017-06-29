@@ -36,23 +36,7 @@ public class UserDAO {
                         .setValue(user)
         ).start();
     }
-    public void getMyList(Long id){
-        Firebase.getInstance().getDatabase().getReference(UserBot.PATH + "/" + id).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                UserBot userBot = dataSnapshot.getValue(UserBot.class);
-                if (userBot.getTrackList()==null|| userBot.getTrackList().size()==0){
-                    Output.get().sendOnlyText(id,Strings.NO_TRACKS);
-                }else {
-                    Output.get().sendMysList(id,userBot.getTrackList());
-                }
-            }
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
 
-            }
-        });
-    }
     /**
      * Провреяем, что этот пользователь есть в базе
      * если нет, то добавляем, если был неактивныйм, то активируем
@@ -83,29 +67,6 @@ public class UserDAO {
         });
     }
 
-    /**
-     * отправляем пользователю трек
-     * @param id
-     * @param track
-     */
-    public void sendTrack(Long id, String track){
-        Firebase.getInstance().getDatabase().getReference(UserBot.PATH+"/"+id).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (dataSnapshot.exists()) {
-                    UserBot userBot = dataSnapshot.getValue(UserBot.class);
-                    if (userBot.getTrackList().containsKey(track) && userBot.getTrackList().get(track)!=null) //если есть такой трек
-                        TrackDAO.getInstance().sendTrackToUser(userBot,track,userBot.getTrackList().get(track).getName());
-                }
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-
-            }
-        });
-
-    }
 
     /**
      * пользователь удалил бота
@@ -113,6 +74,9 @@ public class UserDAO {
      * @param id
      */
     public void botDisabledByUser(String id){
+        //удаляем его нахрен
+
+
         Firebase.getInstance().getDatabase().getReference(UserBot.PATH + "/" + id).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {

@@ -10,10 +10,7 @@ public class MessageBot {
     public static final String ERROR = "Message/ERROR";
     public static final String CORRECT = "Message/CORRECT";
 
-
-
     private Long id;
-    private boolean checked;
     private String text;
     private String createdTime;
 
@@ -24,7 +21,6 @@ public class MessageBot {
         this.id=id;
         this.text = text;
         createdTime = Firebase.getSdf().format(System.currentTimeMillis());
-        checked =false;
     }
 
     public String getText() {
@@ -51,11 +47,4 @@ public class MessageBot {
         this.id = id;
     }
 
-    public boolean isChecked() {
-        return checked;
-    }
-
-    public void setChecked(boolean checked) {
-        this.checked = checked;
-    }
 }

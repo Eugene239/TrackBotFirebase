@@ -1,19 +1,18 @@
 package ru.epavlov.trackbot.main;
 
 import org.apache.log4j.Logger;
-import org.telegram.telegrambots.api.methods.AnswerCallbackQuery;
-import org.telegram.telegrambots.api.objects.CallbackQuery;
-import org.telegram.telegrambots.api.objects.Message;
 import org.telegram.telegrambots.api.objects.Update;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
-import org.telegram.telegrambots.exceptions.TelegramApiException;
-import ru.epavlov.trackbot.dao.UserDAO;
-import ru.epavlov.trackbot.entity.CallBackEntity;
-import ru.epavlov.trackbot.entity.MessageBot;
-import ru.epavlov.trackbot.firebase.Firebase;
 import ru.epavlov.trackbot.logic.CallBackListener;
 import ru.epavlov.trackbot.logic.MessageListener;
+import ru.epavlov.trackbot.model.ModelUser;
+import ru.epavlov.trackbot.thread.TrackCheckRunnable;
+import ru.epavlov.trackbot.thread.UserActiveRunnable;
 import ru.epavlov.trackbot.util.Security;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * получает сообщение, сохраняет его в базу
@@ -22,61 +21,44 @@ import ru.epavlov.trackbot.util.Security;
 public class TrackinBot extends TelegramLongPollingBot {
     private static final String TAG = "[" + TrackinBot.class.getSimpleName() + "]: ";
     private static final Logger Log = Logger.getLogger(TrackinBot.class);
+    private MessageListener messageListener;
+    private CallBackListener callBackListener;
 
     public TrackinBot() {
         Log.warn(TAG + "Start");
-        Output.get().notifyAdmins("_____Start_____");
-        //прослушиваем сообщения
-        new MessageListener(this);
-        //прослушиваем колбеки
-        new CallBackListener(this);
         Output.get().setBot(this);
+        Output.get().notifyAdmins("_____Start_____");
+        messageListener = new MessageListener(this); //создаем обработчика сообщений
+        callBackListener = new CallBackListener(this);
+
         //запускаем сервис
-//        ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
-//        exec.scheduleAtFixedRate(new TrackCheckRunnable(), 0, 3, TimeUnit.HOURS);
+        ScheduledExecutorService exec = Executors.newScheduledThreadPool(2);
+         exec.scheduleAtFixedRate(new TrackCheckRunnable(), 0, 1, TimeUnit.HOURS);
+         exec.scheduleAtFixedRate(new UserActiveRunnable(),0,1,TimeUnit.DAYS);
     }
 
     /**
      * получаем сообщение с сервера
+     *
      * @param update
      */
     public void onUpdateReceived(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) { //обработчик сообщений
-            UserDAO.getInstance().checkUser(update.getMessage());
-            addMessageToParse(update.getMessage());
+            ModelUser.get().getUser(update.getMessage().getChat().getId()).subscribe(user -> {
+                user= ModelUser.get().checkUser(user,update.getMessage()); //проверяем пользователя по базе
+                messageListener.parseMessage(user, update.getMessage()); //чекаем сообщение
+            });
             return;
         }
         if (update.hasCallbackQuery()) { //обработчик колбэков
-            addCallBackToParse(update.getCallbackQuery());
+            ModelUser.get().getUser(update.getCallbackQuery().getFrom().getId()).subscribe(user->{
+                user = ModelUser.get().checkUser(user, update.getCallbackQuery().getFrom());
+                callBackListener.parseCallback(user, update.getCallbackQuery());
+
+            });
             return;
         }
-    }
 
-    /**
-     * добавляем колбек в базу для обработки
-     * @param callbackQuery
-     */
-    private void addCallBackToParse(CallbackQuery callbackQuery) {
-        CallBackEntity callBackEntity = new CallBackEntity(callbackQuery.getFrom().getId(), callbackQuery.getData());
-        Firebase.getInstance().getDatabase().getReference(CallBackEntity.RAW+"/"+callbackQuery.getFrom().getId()).setValue(callBackEntity);
-        try {
-            answerCallbackQuery(new AnswerCallbackQuery().setCallbackQueryId(callbackQuery.getId()));
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * добавляем сообщение для обработки
-     * @param message
-     */
-    private void addMessageToParse(Message message) {
-        //добавляем сырое сообщение на обработку
-        Firebase.getInstance()
-                .getDatabase()
-                .getReference(MessageBot.RAW)
-                .push()
-                .setValue(new MessageBot(message.getChatId(), message.getText()));
     }
 
 
@@ -85,7 +67,7 @@ public class TrackinBot extends TelegramLongPollingBot {
     }
 
     public String getBotToken() {
-        return Security.TRACK_TEST;
+        return Security.tocken;
     }
 
 }

@@ -1,6 +1,8 @@
 package ru.epavlov.trackbot.entity;
 
 import com.google.firebase.database.Exclude;
+import org.telegram.telegrambots.api.objects.Message;
+import org.telegram.telegrambots.api.objects.User;
 import ru.epavlov.trackbot.firebase.Firebase;
 
 import java.util.HashMap;
@@ -17,6 +19,7 @@ public class UserBot {
     private String first_name;
     private String last_name;
     private boolean active;
+    private String lastMessageTime;
     private HashMap<String,UserTrack> trackList= new HashMap<>();
 
     public HashMap<String, UserTrack> getTrackList() {
@@ -35,6 +38,22 @@ public class UserBot {
         this.user_name = user_name;
         this.first_name = first_name;
         this.last_name = last_name;
+        active =true;
+        createdTime = Firebase.getSdf().format(System.currentTimeMillis());
+    }
+    public UserBot(Message message) {
+        this.id = message.getChat().getId();
+        this.user_name = message.getChat().getUserName();
+        this.first_name = message.getChat().getFirstName();
+        this.last_name = message.getChat().getLastName();
+        active =true;
+        createdTime = Firebase.getSdf().format(System.currentTimeMillis());
+    }
+    public UserBot(User telegramUser) {
+        this.id = Long.valueOf(telegramUser.getId());
+        this.user_name = telegramUser.getUserName();
+        this.first_name = telegramUser.getFirstName();
+        this.last_name = telegramUser.getLastName();
         active =true;
         createdTime = Firebase.getSdf().format(System.currentTimeMillis());
     }
@@ -92,5 +111,13 @@ public class UserBot {
         if (user_name!=null) return user_name;
         if (last_name!=null) return first_name+" "+last_name;
         return first_name;
+    }
+
+    public String getLastMessageTime() {
+        return lastMessageTime;
+    }
+
+    public void setLastMessageTime(String lastMessageTime) {
+        this.lastMessageTime = lastMessageTime;
     }
 }

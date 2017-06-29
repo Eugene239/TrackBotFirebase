@@ -88,18 +88,16 @@ public class Output {
 
 
     private InlineKeyboardMarkup getTrackMessageKeyboard(String trackID) {
-        //todo add
-        return null;
-//        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
-//        List<InlineKeyboardButton> list = new ArrayList<>();
-//        list.add(new InlineKeyboardButton().setText("Добавить/Изменить описание").setCallbackData("change_track_name::" + trackID));
-//        keyboardMarkup.getKeyboard().add(list);
-//        list = new ArrayList<>();
-//        //list.add(new InlineKeyboardButton().setText("Изменить трекер").setCallbackData("tracker::" + trackID));
-//        list.add(new InlineKeyboardButton().setText("Удалить").setCallbackData("delete_track::" + trackID));
-//        keyboardMarkup.getKeyboard().add(list);
-//
-//        return keyboardMarkup;
+        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
+        List<InlineKeyboardButton> list = new ArrayList<>();
+        list.add(new InlineKeyboardButton().setText("Добавить/Изменить описание").setCallbackData("change_track_name::" + trackID));
+        keyboardMarkup.getKeyboard().add(list);
+        list = new ArrayList<>();
+        //list.add(new InlineKeyboardButton().setText("Изменить трекер").setCallbackData("tracker::" + trackID));
+        list.add(new InlineKeyboardButton().setText("Удалить").setCallbackData("delete_track::" + trackID));
+        keyboardMarkup.getKeyboard().add(list);
+
+        return keyboardMarkup;
     }
 
     private InlineKeyboardMarkup getTrackListKeyboard(HashMap<String,UserTrack> tracks) {

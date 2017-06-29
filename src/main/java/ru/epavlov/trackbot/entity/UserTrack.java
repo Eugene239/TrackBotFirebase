@@ -6,7 +6,6 @@ import ru.epavlov.trackbot.firebase.Firebase;
  * Created by Eugene on 24.06.2017.
  */
 public class UserTrack {
-  //  private Long userId;
     private String createdTime;
     private String name;
     private String trackId;
@@ -14,14 +13,6 @@ public class UserTrack {
     public UserTrack() {
     }
 
-
-//    public Long getUserId() {
-//        return userId;
-//    }
-//
-//    public void setUserId(Long userId) {
-//        this.userId = userId;
-//    }
     public UserTrack(Track track){
         this.trackId = track.getId();
         this.createdTime = Firebase.getSdf().format(System.currentTimeMillis());
